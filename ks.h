@@ -7,16 +7,28 @@
 #include <unistd.h>
 #include "klib/kstring.h"
 
+
+#ifndef kroundup64
+#define kroundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
+#endif
+
+
 namespace ks {
 
 class KString {
     kstring_t ks_;
 
+
 public:
 
     explicit KString(size_t size): ks_({0, size, size ? (char *)std::malloc(size): nullptr}) {}
     explicit KString(size_t used, size_t max, char *str): ks_({used, max, str}) {}
-    explicit KString(char *str): ks_({0, 0, str}) {}
+    explicit KString(const char *str) {
+        ks_.l = strlen(str);
+        ks_.m = kroundup64(ks_.l);
+        ks_.s = (char *)malloc(ks_.m);
+        memcpy(ks_.s, str, ks_.l);
+    }
 
     KString(): KString(nullptr) {}
     ~KString() {free(ks_.s);}
@@ -26,18 +38,25 @@ public:
         return const_cast<const kstring_t *>(&ks_);
     }
     kstring_t *operator->() {return &ks_;}
-
-    // Conversions
-    operator const char *() const {return ks_.s;}
-    operator       char *()       {return ks_.s;}
-
-    operator const kstring_t *() const {return &ks_;}
-    operator       kstring_t *()       {return &ks_;}
+    // Access kstring
+    kstring_t *ks()             {return &ks_;}
+    const kstring_t *ks() const {return &ks_;}
 
     // Copy
     KString(const KString &other): ks_{other->l, other->m, (char *)std::malloc(other->m)} {
-        memcpy(ks_.s, other->s, other->m);
+        memcpy(ks_.s, other->s, other->l + 1);
     }
+
+    KString(const std::string &str) {
+        ks_.l = str.size();
+        ks_.m = kroundup64(ks_.l);
+        ks_.s = (char *)malloc(ks_.m);
+        memcpy(ks_.s, str.data(), ks_.l + 1);
+    }
+
+    KString operator=(const KString &other)   {return KString(other);}
+    KString operator=(const char *str)        {return KString(str);}
+    KString operator=(const std::string &str) {return KString(str);}
 
     // Move
     KString(KString &&other) {
