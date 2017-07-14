@@ -8,8 +8,8 @@
 #include <unistd.h>
 
 
-#ifndef kroundup64
-#define kroundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
+#ifndef roundup64
+#define roundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
 #endif
 
 namespace ks {
@@ -23,11 +23,11 @@ class KString {
 
 public:
 
-    explicit KString(size_t size): l(size), m(kroundup64(size)), s(size ? static_cast<char *>(std::malloc(size)): nullptr) {}
+    explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size)): nullptr) {}
 
-    explicit KString(size_t used, size_t max, char *str, bool owns=false):
+    explicit KString(size_t used, size_t max, char *str, bool assume_ownership=false):
         l(used), m(max), s(str) {
-        if(owns == false) {
+        if(assume_ownership == false) {
             s = static_cast<char *>(std::malloc(m));
             std::memcpy(s, str, l + 1);
         }
@@ -38,7 +38,7 @@ public:
             std::memset(this, 0, sizeof *this);
         } else {
             l = strlen(str);
-            m = kroundup64(l);
+            m = roundup64(l);
             s = static_cast<char *>(std::malloc(m));
             std::memcpy(s, str, l + 1);
         }
@@ -64,10 +64,8 @@ public:
         std::memcpy(s, other.s, l + 1);
     }
 
-    KString(const std::string &str) {
-        l = str.size();
-        m = l; kroundup64(m);
-        s = static_cast<char *>(std::malloc(m));
+    KString(const std::string &str): l(str.size()), m(l), s(static_cast<char *>(std::malloc(m))) {
+        roundup64(m);
         std::memcpy(s, str.data(), l + 1);
     }
 
@@ -111,7 +109,7 @@ public:
         if (l + 1 >= m) {
             char *tmp;
             m = l + 2;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m))))
                 s = tmp;
             else
@@ -119,40 +117,6 @@ public:
         }
         s[l++] = c;
         return c;
-    }
-    int putc(int c) {
-        if (l + 1 >= m) {
-            char *tmp;
-            m = l + 2;
-            kroundup64(m);
-            if ((tmp = static_cast<char *>(std::realloc(s, m))))
-                s = tmp;
-            else
-                return EOF;
-        }
-        s[l++] = c;
-        s[l]   = 0;
-        return c;
-    }
-    int putw(int c)  {
-        char buf[16];
-        int i, len = 0;
-        unsigned int x = c;
-        if (c < 0) x = -x;
-        do { buf[len++] = x%10 + '0'; x /= 10; } while (x > 0);
-        if (c < 0) buf[len++] = '-';
-        if (len + l + 1 >= m) {
-            char *tmp;
-            m = len + l + 2;
-            kroundup64(m);
-            if ((tmp = static_cast<char*>(std::realloc(s, m))))
-                s = tmp;
-            else
-                return EOF;
-        }
-        for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
-        s[l] = 0;
-        return 0;
     }
     int putw_(int c)  {
         char buf[16];
@@ -164,7 +128,7 @@ public:
         if (len + l + 1 >= m) {
             char *tmp;
             m = len + l + 2;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char*>(std::realloc(s, m))))
                 s = tmp;
             else
@@ -173,7 +137,7 @@ public:
         for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
         return 0;
     }
-    int putl(int c)  {
+    int putl_(long c)  {
         char buf[32];
         int i, len = 0;
         unsigned long x = c;
@@ -183,17 +147,16 @@ public:
         if (len + l + 1 >= m) {
             char *tmp;
             m = len + l + 2;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m))))
                 s = tmp;
             else
                 return EOF;
         }
         for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
-        s[l] = 0;
         return 0;
     }
-    int putuw(int c) {
+    int putuw_(int c) {
         char buf[16];
         int len, i;
         unsigned x;
@@ -202,21 +165,20 @@ public:
         if (len + l + 1 >= m) {
             char *tmp;
             m = len + l + 2;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m))))
                 s = tmp;
             else
                 return EOF;
         }
         for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
-        s[l] = 0;
         return 0;
     }
-    int putsn(const char *str, int len)  {
+    long putsn_(const char *str, long len) {
         if (len + l + 1 >= m) {
             char *tmp;
             m = len + l + 2;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m))))
                 s = tmp;
             else
@@ -224,24 +186,30 @@ public:
         }
         std::memcpy(s + l, str, len);
         l += len;
+        return len;
+    }
+    int putuw(int c) {
+        c = putuw_(c), s[l] = 0;
+        return c;
+    }
+    int putc(int c) {
+        c = putc_(c), s[l] = 0;
+        return c;
+    }
+    int putw(int c)  {
+        c = putw_(c), s[l] = 0;
+        return c;
+    }
+    int putl(long c)  {
+        c = putl_(c), s[l] = 0;
+        return c;
+    }
+    long putsn(const char *str, long len)  {
+        len = putsn_(str, len);
         s[l] = 0;
-        return l;
+        return len;
     }
-    int putsn_(const char *str, int len) {
-        if (len + l + 1 >= m) {
-            char *tmp;
-            m = len + l + 2;
-            kroundup64(m);
-            if ((tmp = static_cast<char *>(std::realloc(s, m))))
-                s = tmp;
-            else
-                return EOF;
-        }
-        std::memcpy(s + l, str, len);
-        l += len;
-        return l;
-    }
-    int puts(const char *s)          {return putsn(s, strlen(s));}
+    int puts(const char *s) {return putsn_(s, strlen(s) + 1);}
     int sprintf(const char *fmt, ...) {
         size_t len;
         std::va_list ap;
@@ -249,7 +217,7 @@ public:
         len = vsnprintf(s + l, m - l, fmt, ap); // This line does not work with glibc 2.0. See `man snprintf'.
         if (len + 1 > m - l) {
             m = l + len + 2;
-            kroundup64(m);
+            roundup64(m);
             s = static_cast<char*>(std::realloc(s, m));
             len = vsnprintf(s + l, m - l, fmt, ap);
         }
@@ -281,7 +249,7 @@ public:
         if (m < size) {
             char *tmp;
             m = size;
-            kroundup64(m);
+            roundup64(m);
             if ((tmp = static_cast<char*>(std::realloc(s, m))))
                 s = tmp;
             else
