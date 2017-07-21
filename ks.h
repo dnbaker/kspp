@@ -34,8 +34,7 @@ public:
         if(str == nullptr) {
             std::memset(this, 0, sizeof *this);
         } else {
-            l = std::strlen(str);
-            m = roundup64(l);
+            m = l = std::strlen(str), roundup64(m);
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
@@ -56,13 +55,13 @@ public:
     }
 
     KString(const std::string &str): l(str.size()), m(l), s(static_cast<char *>(std::malloc(m))) {
-        m = roundup64(m);
+        roundup64(m);
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
     // Stealing ownership in a very mean way.
     KString(std::string &&str): l(str.size()), m(l), s(const_cast<char *>(str.data())) {
-        m = roundup64(m);
+        roundup64(m);
         std::memset(&str, 0, sizeof(str));
     }
 
@@ -294,6 +293,13 @@ public:
     char       &operator[](size_t index)       {return s[index];}
 
     int write(FILE *fp) const {return std::fwrite(s, sizeof(char), l, fp);}
+    auto write(const char *path) const {
+        std::FILE *fp(std::fopen(path, "r"));
+        if(!fp) throw 1;
+        const auto ret(write(fp));
+        std::fclose(fp);
+        return ret;
+    }
     int write(int fd)   const {return     ::write(fd, s, l * sizeof(char));}
 };
 
