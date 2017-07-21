@@ -45,14 +45,9 @@ public:
     ~KString() {std::free(s);}
 
 #ifdef KSTRING_H
-    // kstring_t access:
-    kstring_t *operator->()             {return reinterpret_cast<kstring_t *>(this);}
-    const kstring_t *operator->() const {return reinterpret_cast<const kstring_t *>(this);}
-
     // Access kstring
     kstring_t *ks()             {return reinterpret_cast<kstring_t *>(this);}
     const kstring_t *ks() const {return reinterpret_cast<const kstring_t *>(this);}
-    KString *operator->()             {return this;}
 #endif
 
     // Copy
@@ -223,9 +218,7 @@ public:
         va_start(ap, fmt);
         len = vsnprintf(s + l, m - l, fmt, ap); // This line does not work with glibc 2.0. See `man snprintf'.
         if (len + 1 > m - l) {
-            m = l + len + 2;
-            roundup64(m);
-            s = static_cast<char*>(std::realloc(s, m * sizeof(char)));
+            resize(len + 1);
             len = vsnprintf(s + l, m - l, fmt, ap);
         }
         va_end(ap);
@@ -252,7 +245,7 @@ public:
 
     const char     *data() const {return s;}
     char           *data()       {return s;}
-    auto resize(size_t size) {
+    int resize(size_t size) {
         if (m < size) {
             char *tmp;
             m = size;
