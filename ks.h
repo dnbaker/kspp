@@ -47,7 +47,8 @@ public:
         if(str == nullptr) {
             std::memset(this, 0, sizeof *this);
         } else {
-            m = l = std::strlen(str), roundup64(m);
+            m = l = std::strlen(str);
+            roundup64(m);
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
@@ -337,7 +338,8 @@ public:
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
-static inline void split(char *s, int delimiter, size_t l, std::vector<size_t> &offsets)
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+void split(char *s, int delimiter, size_t l, std::vector<T, Alloc> &offsets)
 {
     unsigned i, last_char, last_start;
     offsets.clear();
@@ -365,20 +367,26 @@ static inline void split(char *s, int delimiter, size_t l, std::vector<size_t> &
 
 }
 
-static inline void split(char *s, int delimiter, std::vector<size_t> &offsets) {
+template<typename T=std::size_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+void split(char *s, int delimiter, std::vector<T> &offsets) {
     split(s, delimiter, std::strlen(s), offsets);
 }
 
 
-static inline std::vector<size_t> split(char *s, size_t l, int delimiter)
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
 {
-    std::vector<size_t> ret;
+    std::vector<T, Alloc> ret;
     ks::split(s, delimiter, l, ret);
     return ret;
 }
 
-static inline std::vector<size_t> split(KString &s, int delimiter) {return split(s.data(), s.size(), delimiter);}
-static inline std::vector<size_t> split(std::string &s, int delimiter) {return split(&s[0], s.size(), delimiter);}
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+std::vector<T, Alloc> split(KString &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
 
 } // namespace ks
 
