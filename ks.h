@@ -367,6 +367,15 @@ void split(char *s, int delimiter, size_t l, std::vector<T, Alloc> &offsets)
 
 }
 
+KString sprintf(const char *fmt, ...) {
+    KString ret;
+    va_list ap;
+    va_start(ap, fmt);
+    ret.vsprintf(fmt, ap);
+    va_end(ap);
+    return ret;
+}
+
 template<typename T=std::size_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 void split(char *s, int delimiter, std::vector<T> &offsets) {
     split(s, delimiter, std::strlen(s), offsets);
