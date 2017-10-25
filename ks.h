@@ -367,7 +367,7 @@ void split(char *s, int delimiter, size_t l, std::vector<T, Alloc> &offsets)
 
 }
 
-KString sprintf(const char *fmt, ...) {
+inline KString sprintf(const char *fmt, ...) {
     KString ret;
     va_list ap;
     va_start(ap, fmt);
