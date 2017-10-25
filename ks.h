@@ -391,6 +391,15 @@ std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
 }
 
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+inline std::vector<ks::KString> toksplit(char *s, size_t l, int delimiter=0) {
+    auto vec(split<T, Alloc>(s, l, delimiter));
+    std::vector<ks::KString> ret;
+    ret.reserve(vec.size());
+    for(const auto i: vec) ret.emplace_back(s + i);
+    return ret;
+}
+
+template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(KString &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
