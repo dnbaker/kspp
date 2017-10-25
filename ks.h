@@ -283,16 +283,7 @@ public:
                 throw std::bad_alloc();
             }
             s = tmp;
-#if !NDEBUG
-            std::cerr << "s: " << reinterpret_cast<std::uint64_t>(s) << '\n';
-            std::cerr << "s: ";
-            for(size_t i(0); i < l; ++i) std::cerr << ',' << s[i];
-            std::cerr << '\n';
-#endif
         }
-#if !NDEBUG
-        std::cerr << "Successfully resized to " << m << '\n';
-#endif
         return 0;
     }
 
