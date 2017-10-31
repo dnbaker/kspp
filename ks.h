@@ -317,7 +317,7 @@ public:
     INLINE const char &operator[](size_t index) const {return s[index];}
     INLINE char       &operator[](size_t index)       {return s[index];}
 
-    INLINE int write(FILE *fp) const {return std::fwrite(s, sizeof(char), l, fp);}
+    INLINE int write(FILE *fp) const   {return std::fwrite(s, sizeof(char), l, fp);}
     INLINE auto write(const char *path) const {
         std::FILE *fp(std::fopen(path, "r"));
         if(!fp) throw 1;
@@ -325,7 +325,7 @@ public:
         std::fclose(fp);
         return ret;
     }
-    INLINE int write(int fd)   const {return     ::write(fd, s, l * sizeof(char));}
+    INLINE ssize_t write(int fd) const {return    ::write(fd, s, l * sizeof(char));}
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
