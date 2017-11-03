@@ -368,13 +368,13 @@ inline KString sprintf(const char *fmt, ...) {
 }
 
 template<typename T=std::size_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-void split(char *s, int delimiter, std::vector<T> &offsets) {
+inline void split(char *s, int delimiter, std::vector<T> &offsets) {
     split(s, delimiter, std::strlen(s), offsets);
 }
 
 
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
+inline std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
 {
     std::vector<T, Alloc> ret;
     ks::split(s, delimiter, l, ret);
