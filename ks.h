@@ -54,7 +54,7 @@ public:
         }
     }
 
-    INLINE KString(): KString(nullptr) {}
+    INLINE KString(): KString(0ul) {}
     INLINE ~KString() {std::free(s);}
 
 #ifdef KSTRING_H
@@ -125,7 +125,7 @@ public:
             else
                 return EOF;
         }
-        s[l++] = c;
+        s[l++] = (char)c;
         return 0;
     }
     INLINE int putw_(int c)  {
@@ -133,7 +133,7 @@ public:
         int i, len = 0;
         unsigned int x = c;
         if (c < 0) x = -x;
-        do { buf[len++] = x%10 + '0'; x /= 10; } while (x > 0);
+        do { buf[len++] = (char)(x%10 + '0'); x /= 10; } while (x > 0);
         if (c < 0) buf[len++] = '-';
         if (len + l + 1 >= m) {
             char *tmp;
@@ -152,7 +152,7 @@ public:
         int len, i;
         unsigned x;
         if (c == 0) return putc('0');
-        for (len = 0, x = c; x > 0; x /= 10) buf[len++] = x%10 + '0';
+        for (len = 0, x = c; x > 0; x /= 10) buf[len++] = (char)(x%10 + '0');
         if (len + l + 1 >= m) {
             char *tmp;
             m = len + l + 2;
@@ -170,7 +170,7 @@ public:
         int i, len = 0;
         unsigned long x = c;
         if (c < 0) x = -x;
-        do { buf[len++] = x%10 + '0'; x /= 10; } while (x > 0);
+        do { buf[len++] = (char)(x%10 + '0'); x /= 10; } while (x > 0);
         if (c < 0) buf[len++] = '-';
         if (len + l + 1 >= m) {
             char *tmp;
@@ -217,11 +217,11 @@ public:
         c = putw_(c), s[l] = 0;
         return c;
     }
-    INLINE int putl(long c)  {
+    INLINE long putl(long c)  {
         c = putl_(c), s[l] = 0;
         return c;
     }
-    INLINE int puts(const char *s) {return putsn_(s, std::strlen(s) + 1);}
+    INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s) + 1);}
     INLINE long putsn(const char *str, long len)  {
         len = putsn_(str, len);
         s[l] = 0;
@@ -242,7 +242,7 @@ public:
             va_end(args);
         }
         l += len;
-        return l;
+        return len;
     }
 
     int sprintf(const char *fmt, ...) {
@@ -317,7 +317,7 @@ public:
     INLINE const char &operator[](size_t index) const {return s[index];}
     INLINE char       &operator[](size_t index)       {return s[index];}
 
-    INLINE int write(FILE *fp) const   {return std::fwrite(s, sizeof(char), l, fp);}
+    INLINE size_t write(FILE *fp) const   {return std::fwrite(s, sizeof(char), l, fp);}
     INLINE auto write(const char *path) const {
         std::FILE *fp(std::fopen(path, "r"));
         if(!fp) throw 1;
@@ -396,6 +396,8 @@ template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std:
 std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
+
+using string = KString;
 
 } // namespace ks
 
