@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 #include <unistd.h>
 
@@ -273,6 +274,18 @@ public:
 
     INLINE const char     *data() const {return s;}
     INLINE char           *data()       {return s;}
+    // In-place modify std::string.
+    std::string &set(std::string &ret) const {
+        ret.reserve(l);
+        ret.resize(0);
+        std::copy(begin(), end(), std::back_inserter(ret));
+        return ret;
+    }
+    std::string str() const {
+        std::string ret;
+        set(ret);
+        return ret;
+    }
     INLINE int resize(size_t size) {
         if (m < size) {
             char *tmp;
