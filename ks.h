@@ -381,6 +381,15 @@ std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
     return ret;
 }
 
+inline ks::KString sprintf(const char *fmt, ...) {
+    ks::KString ret;
+    va_list ap;
+    va_start(ap, fmt);
+    ret.vsprintf(fmt, ap);
+    va_end(ap);
+    return ret;
+}
+
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(KString &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
