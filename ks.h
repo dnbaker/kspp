@@ -17,13 +17,20 @@
 
 #ifndef INLINE
 #  if __GNUC__ || __clang__
-#  define INLINE __attribute__((always_inline)) inline
+#    define INLINE __attribute__((always_inline)) inline
 #  else
-#  define INLINE inline
+#    define INLINE inline
 #  endif
 #endif
 
 namespace ks {
+
+#define realloc_unique(ptr, new_size) do {\
+    std::decay_t<decltype(ptr.get())> __tmp_ptr(std::realloc(ptr.get(), new_size));\
+    if(__tmp_ptr == nullptr) throw std::bad_alloc("Could not reallocate unique_ptr\n");\
+    ptr.release(); ptr.reset(__tmp_ptr);\
+    } while(0)
+
 
 using std::size_t;
 using namespace std::literals;
