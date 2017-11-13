@@ -414,4 +414,6 @@ using string = KString;
 
 } // namespace ks
 
+#undef roundup64
+
 #endif // #ifndef _KS_WRAPPER_H__
