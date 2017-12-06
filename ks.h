@@ -63,6 +63,11 @@ public:
     INLINE kstring_t *ks()             {return reinterpret_cast<kstring_t *>(this);}
     INLINE const kstring_t *ks() const {return reinterpret_cast<const kstring_t *>(this);}
 #endif
+    INLINE void free() {
+        l = m = 0;
+        std::free(s);
+        s = nullptr;
+    }
 
     // Copy
     INLINE KString(const KString &other): l(other.l), m(other.m), s(static_cast<char *>(std::malloc(other.m))) {
