@@ -34,7 +34,9 @@ class KString {
     char     *s;
 public:
 
-    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {}
+    INLINE explicit KString(size_t size): l(0), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {
+        if(s) s[l] = '\0';
+    }
 
     INLINE explicit KString(size_t used, size_t max, char *str, bool assume_ownership=false):
         l(used), m(max), s(str) {
