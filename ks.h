@@ -34,8 +34,12 @@ class KString {
     char     *s;
 public:
 
-    INLINE explicit KString(size_t size): l(0), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {
-        if(s) s[l] = '\0';
+    INLINE explicit KString(size_t size):
+        l(0), m(roundup64(size)) {
+        if(m)
+            s = (char *)std::malloc(m * sizeof(char)), *s = '\0';
+        else
+            s = nullptr;
     }
 
     INLINE explicit KString(size_t used, size_t max, char *str, bool assume_ownership=false):
@@ -50,7 +54,8 @@ public:
         if(str == nullptr) {
             std::memset(this, 0, sizeof *this);
         } else {
-            m = l = std::strlen(str);
+            l = std::strlen(str);
+            m = l + 1;
             roundup64(m);
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
             std::memcpy(s, str, (l + 1) * sizeof(char));
@@ -121,6 +126,18 @@ public:
                 return 0;
         return 1;
     }
+    INLINE void reverse() {
+        for(size_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
+    }
+    KString reversed const {
+        KString cpy(*this);
+        cpy.reverse();
+        return cpy;
+    }
+    bool startswith(const char *str, size_t l) const {return std::memcmp(s, str, l) == 0;}
+    bool startswith(const char *str) const {return startswith(str, std::strlen(str));}
+    template<typename T>
+    bool startswith(const T &str) const {return startswith(str.data(), str.size());}
 
     // Appending:
     INLINE int putc_(int c) {
@@ -192,11 +209,6 @@ public:
         for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
         return 0;
     }
-    INLINE int putuw(int c) {
-        c = putuw_(c);
-        s[l] = 0;
-        return c;
-    }
     INLINE long putsn_(const char *str, long len) {
         if (len + l + 1 >= m) {
             char *tmp;
@@ -211,30 +223,28 @@ public:
         l += len;
         return len;
     }
-    INLINE int putc(int c) {
-        c = putc_(c), s[l] = 0;
-        return c;
-    }
     INLINE char       &back()       {return s[l - 1];}
     INLINE const char &back() const {return s[l - 1];}
 
     INLINE char       &terminus()       {return s[l];}
     INLINE const char &terminus() const {return s[l];}
     INLINE void       terminate()       {terminus() = '\0';}
+    INLINE int putuw(int c) {
+        c = putuw_(c); s[l] = 0; return c;
+    }
+    INLINE int putc(int c) {
+        c = putc_(c); s[l] = 0; return c;
+    }
     INLINE int putw(int c)  {
-        c = putw_(c), s[l] = 0;
-        return c;
+        c = putw_(c); s[l] = 0; return c;
     }
     INLINE long putl(long c)  {
-        c = putl_(c), s[l] = 0;
-        return c;
+        c = putl_(c), s[l] = 0; return c;
+    }
+    INLINE long putsn(const char *str, long len)  {
+        len = putsn_(str, len); s[l] = 0; return l;
     }
     INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s));}
-    INLINE long putsn(const char *str, long len)  {
-        len = putsn_(str, len);
-        s[l] = 0;
-        return l;
-    }
     int vsprintf(const char *fmt, va_list ap)
     {
         va_list args;
