@@ -222,7 +222,7 @@ public:
         c = putl_(c), s[l] = 0;
         return c;
     }
-    INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s) + 1);}
+    INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s));}
     INLINE long putsn(const char *str, long len)  {
         len = putsn_(str, len);
         s[l] = 0;
