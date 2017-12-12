@@ -129,15 +129,19 @@ public:
     INLINE void reverse() {
         for(size_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
     }
-    KString reversed const {
+    KString reversed() const {
         KString cpy(*this);
         cpy.reverse();
         return cpy;
     }
-    bool startswith(const char *str, size_t l) const {return std::memcmp(s, str, l) == 0;}
+    bool startswith(const char *str, size_t slen) const {return std::memcmp(s, str, slen) == 0;}
     bool startswith(const char *str) const {return startswith(str, std::strlen(str));}
-    template<typename T>
-    bool startswith(const T &str) const {return startswith(str.data(), str.size());}
+    template<typename T> bool startswith(const T &str) const {return startswith(str.data(), str.size());}
+    bool endswith(const char *str, size_t slen) const {
+        return std::equal(std::reverse_iterator(str + slen), std::reverse_iterator(str), std::reverse_iterator(s + l));
+    }
+    bool endswith(const char *str) const {return endswith(str, std::strlen(str));}
+    template<typename T> bool endswith(const T &str) const {return endswith(str.data(), str.size());}
 
     // Appending:
     INLINE int putc_(int c) {
