@@ -12,6 +12,7 @@
 #include <vector>
 #include <unistd.h>
 #include <experimental/functional>
+// If this fails to be located and you have a new compiler, you may need to remove "experimental/" from this include.
 #include <algorithm>
 
 #ifndef roundup64
@@ -339,12 +340,34 @@ public:
     char *locate(const char *str) {return locate(str, std::strlen(str));}
 
     char *bmlocate(const char *str, size_t len) {
-        std::boyer_moore_searcher(str, str + len);
+#if __cpp_lib_boyer_moore_searcher
         return std::search(s, s + l, std::boyer_moore_searcher(str, str + len));
+#else
+#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+        return locate(str, len);
+#endif
     }
+    char *bmhlocate(const char *str, size_t len) {
+#if __cpp_lib_boyer_moore_searcher
+        return std::search(s, s + l, std::boyer_moore_horspool_searcher(str, str + len));
+#else
+#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+        return locate(str, len);
+#endif
+#if __cpp_lib_boyer_moore_searcher
+    auto make_bm() const {
+        return std::boyer_moore_searcher(s, s + l);
+    }
+    auto make_bmh() const {
+        return std::boyer_moore_horspool_searcher(s, s + l);
+    }
+#endif
     const char *bmlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmlocate(str, len));}
     const char *bmlocate(const char *str) const {return bmlocate(str, std::strlen(str));}
     char *bmlocate(const char *str) {return bmlocate(str, std::strlen(str));}
+    const char *bmhlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmhlocate(str, len));}
+    const char *bmhlocate(const char *str) const {return bmhlocate(str, std::strlen(str));}
+    char *bmhlocate(const char *str) {return bmhlocate(str, std::strlen(str));}
     bool contains(const char *str, size_t len) const {return locate(str, len) != nullptr;}
     bool contains(const char *str) const {return contains(str, std::strlen(str));}
     template<typename T> bool contains(const T &str) const {return contains(str.data(), str.size());}
