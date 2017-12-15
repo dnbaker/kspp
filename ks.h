@@ -354,6 +354,7 @@ public:
 #pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
         return locate(str, len);
 #endif
+    }
 #if __cpp_lib_boyer_moore_searcher
     auto make_bm() const {
         return std::boyer_moore_searcher(s, s + l);
