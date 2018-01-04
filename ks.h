@@ -479,10 +479,11 @@ std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Al
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
 
+using KString = ks::string;
 
 } // namespace ks
 
-using KString = ks::string;
+using ks::KString;
 
 #undef roundup64
 
