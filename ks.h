@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
+#include <experimental/functional>
+// If this fails to be located and you have a new compiler, you may need to remove "experimental/" from this include.
+#include <algorithm>
 
 #ifndef roundup64
 #define roundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
@@ -29,7 +32,7 @@ namespace ks {
 using std::size_t;
 using namespace std::literals;
 
-class KString {
+class string {
     size_t l, m;
     char     *s;
     static const size_t DEFAULT_SIZE = 4;
@@ -42,11 +45,11 @@ public:
         *s = 0;
     }
 
-    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {
+    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
 
-    INLINE explicit KString(size_t used, size_t max, char *str, bool assume_ownership=false):
+    INLINE explicit string(size_t used, size_t max, char *str, bool assume_ownership=false):
         l(used), m(max), s(str) {
         if(assume_ownership == false) {
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
@@ -55,20 +58,21 @@ public:
         default_allocate();
     }
 
-    INLINE explicit KString(const char *str) {
+    INLINE explicit string(const char *str) {
         if(str == nullptr) {
             std::memset(this, 0, sizeof *this);
             default_allocate();
         } else {
-            m = l = std::strlen(str);
+            l = std::strlen(str);
+            m = l + 1;
             roundup64(m);
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
     }
 
-    INLINE KString(): KString(0ul) {}
-    INLINE ~KString() {std::free(s);}
+    INLINE string(): string(0ul) {}
+    INLINE ~string() {std::free(s);}
 
 #ifdef KSTRING_H
     // Access kstring
@@ -81,36 +85,36 @@ public:
     }
 
     // Copy
-    INLINE KString(const KString &other): l(other.l), m(other.m), s(static_cast<char *>(std::malloc(other.m))) {
+    INLINE string(const string &other): l(other.l), m(other.m), s(static_cast<char *>(std::malloc(other.m))) {
         std::memcpy(s, other.s, l + 1);
     }
 
-    INLINE KString(const std::string &str): l(str.size()), m(l), s(static_cast<char *>(std::malloc(m))) {
+    INLINE string(const std::string &str): l(str.size()), m(l), s(static_cast<char *>(std::malloc(m))) {
         roundup64(m);
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
     // Stealing ownership in a very mean way.
-    INLINE KString(std::string &&str): l(str.size()), m(l), s(const_cast<char *>(str.data())) {
+    INLINE string(std::string &&str): l(str.size()), m(l), s(const_cast<char *>(str.data())) {
         roundup64(m);
         std::memset(&str, 0, sizeof(str));
     }
 
-    INLINE KString operator=(const KString &other)   {return KString(other);}
-    INLINE KString operator=(const char *str)        {return KString(str);}
-    INLINE KString operator=(const std::string &str) {return KString(str);}
+    INLINE string operator=(const string &other)   {return string(other);}
+    INLINE string operator=(const char *str)        {return string(str);}
+    INLINE string operator=(const std::string &str) {return string(str);}
 
     // Move
-    INLINE KString(KString &&other) {
+    INLINE string(string &&other) {
         std::memcpy(this, &other, sizeof(other));
         std::memset(&other, 0, sizeof(other));
     }
 
     // Comparison functions
     INLINE int cmp(const char *str)      const {return std::strcmp(s, str);}
-    INLINE int cmp(const KString &other) const {return cmp(other.s);}
+    INLINE int cmp(const string &other) const {return cmp(other.s);}
 
-    INLINE bool operator==(const KString &other) const {
+    INLINE bool operator==(const string &other) const {
         if(other.l != l) return 0;
         if(l) for(size_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
         return 1;
@@ -130,6 +134,22 @@ public:
                 return 0;
         return 1;
     }
+    INLINE void reverse() {
+        for(size_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
+    }
+    string reversed() const {
+        string cpy(*this);
+        cpy.reverse();
+        return cpy;
+    }
+    bool startswith(const char *str, size_t slen) const {return std::memcmp(s, str, slen) == 0;}
+    bool startswith(const char *str) const {return startswith(str, std::strlen(str));}
+    template<typename T> bool startswith(const T &str) const {return startswith(str.data(), str.size());}
+    bool endswith(const char *str, size_t slen) const {
+        return std::memcmp(str, s + l - slen, slen) == 0;
+    }
+    bool endswith(const char *str) const {return endswith(str, std::strlen(str));}
+    template<typename T> bool endswith(const T &str) const {return endswith(str.data(), str.size());}
 
     // Appending:
     INLINE int putc_(int c) {
@@ -201,11 +221,6 @@ public:
         for (i = len - 1; i >= 0; --i) s[l++] = buf[i];
         return 0;
     }
-    INLINE int putuw(int c) {
-        c = putuw_(c);
-        s[l] = 0;
-        return c;
-    }
     INLINE long putsn_(const char *str, long len) {
         if (len + l + 1 >= m) {
             char *tmp;
@@ -220,30 +235,28 @@ public:
         l += len;
         return len;
     }
-    INLINE int putc(int c) {
-        c = putc_(c), s[l] = 0;
-        return c;
-    }
     INLINE char       &back()       {return s[l - 1];}
     INLINE const char &back() const {return s[l - 1];}
 
     INLINE char       &terminus()       {return s[l];}
     INLINE const char &terminus() const {return s[l];}
     INLINE void       terminate()       {terminus() = '\0';}
+    INLINE int putuw(int c) {
+        c = putuw_(c); s[l] = 0; return c;
+    }
+    INLINE int putc(int c) {
+        c = putc_(c); s[l] = 0; return c;
+    }
     INLINE int putw(int c)  {
-        c = putw_(c), s[l] = 0;
-        return c;
+        c = putw_(c); s[l] = 0; return c;
     }
     INLINE long putl(long c)  {
-        c = putl_(c), s[l] = 0;
-        return c;
+        c = putl_(c), s[l] = 0; return c;
     }
-    INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s) + 1);}
     INLINE long putsn(const char *str, long len)  {
-        len = putsn_(str, len);
-        s[l] = 0;
-        return l;
+        len = putsn_(str, len); s[l] = 0; return l;
     }
+    INLINE long int puts(const char *s) {return putsn_(s, std::strlen(s));}
     int vsprintf(const char *fmt, va_list ap)
     {
         va_list args;
@@ -324,6 +337,51 @@ public:
     INLINE auto &operator+=(int c)        {putw(c);  return *this;}
     INLINE auto &operator+=(unsigned c)   {putuw(c); return *this;}
     INLINE auto &operator+=(long c)       {putl(c);  return *this;}
+    char *locate(const char *str, size_t len) {
+        return std::strstr(s, str);
+    }
+    const char *locate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->locate(str, len));}
+    const char *locate(const char *str) const {return locate(str, std::strlen(str));}
+    char *locate(const char *str) {return locate(str, std::strlen(str));}
+
+    char *bmlocate(const char *str, size_t len) {
+#if __cpp_lib_boyer_moore_searcher
+        return std::search(s, s + l, std::boyer_moore_searcher(str, str + len));
+#else
+#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+        return locate(str, len);
+#endif
+    }
+    char *bmhlocate(const char *str, size_t len) {
+#if __cpp_lib_boyer_moore_searcher
+        return std::search(s, s + l, std::boyer_moore_horspool_searcher(str, str + len));
+#else
+#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+        return locate(str, len);
+#endif
+    }
+#if __cpp_lib_boyer_moore_searcher
+    auto make_bm() const {
+        return std::boyer_moore_searcher(s, s + l);
+    }
+    auto make_bmh() const {
+        return std::boyer_moore_horspool_searcher(s, s + l);
+    }
+#endif
+    const char *bmlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmlocate(str, len));}
+    const char *bmlocate(const char *str) const {return bmlocate(str, std::strlen(str));}
+    char *bmlocate(const char *str) {return bmlocate(str, std::strlen(str));}
+    const char *bmhlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmhlocate(str, len));}
+    const char *bmhlocate(const char *str) const {return bmhlocate(str, std::strlen(str));}
+    char *bmhlocate(const char *str) {return bmhlocate(str, std::strlen(str));}
+    bool contains(const char *str, size_t len) const {return locate(str, len) != nullptr;}
+    bool contains(const char *str) const {return contains(str, std::strlen(str));}
+    template<typename T> bool contains(const T &str) const {return contains(str.data(), str.size());}
+    bool bmcontains(const char *str, size_t len) const {
+        return bmlocate(str, len) != end();
+    }
+    bool bmcontains(const char *str) const {return bmcontains(str, std::strlen(str));}
+    template<typename T> bool bmcontains(const T &str) const {return bmcontains(str.data(), str.size());}
 
     // Append string forms
 #ifdef KSTRING_H
@@ -339,7 +397,7 @@ public:
         putsn(s.data(), s.size());
         return *this;
     }
-    INLINE auto &operator+=(const KString &other) {putsn(other.s, other.l); return *this;}
+    INLINE auto &operator+=(const string &other) {putsn(other.s, other.l); return *this;}
     INLINE auto &operator+=(const char *s)        {puts(s); return *this;}
 
     // Access
@@ -401,8 +459,8 @@ inline std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
     return ret;
 }
 
-inline ks::KString sprintf(const char *fmt, ...) {
-    ks::KString ret;
+inline string sprintf(const char *fmt, ...) {
+    string ret;
     va_list ap;
     va_start(ap, fmt);
     ret.vsprintf(fmt, ap);
@@ -411,23 +469,27 @@ inline ks::KString sprintf(const char *fmt, ...) {
 }
 
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-inline std::vector<ks::KString> toksplit(char *s, size_t l, int delimiter=0) {
+inline std::vector<string> toksplit(char *s, size_t l, int delimiter=0) {
     auto vec(split<T, Alloc>(s, l, delimiter));
-    std::vector<ks::KString> ret;
+    std::vector<string> ret;
     ret.reserve(vec.size());
     for(const auto i: vec) ret.emplace_back(s + i);
     return ret;
 }
 
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-std::vector<T, Alloc> split(KString &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
+std::vector<T, Alloc> split(string &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
 template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
 
-using string = KString;
+using KString = ks::string;
 
 } // namespace ks
+
+using ks::KString;
+
+#undef roundup64
 
 #endif // #ifndef _KS_WRAPPER_H__
