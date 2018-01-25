@@ -32,9 +32,19 @@ using namespace std::literals;
 class KString {
     size_t l, m;
     char     *s;
+    static const size_t DEFAULT_SIZE = 4;
 public:
 
-    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {}
+    void default_allocate() {
+        if(s) return;
+        if((s = static_cast<char *>(std::malloc(DEFAULT_SIZE))) == nullptr) throw std::bad_alloc();
+        m = DEFAULT_SIZE;
+        *s = 0;
+    }
+
+    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(size * sizeof(char))): nullptr) {
+        default_allocate();
+    }
 
     INLINE explicit KString(size_t used, size_t max, char *str, bool assume_ownership=false):
         l(used), m(max), s(str) {
@@ -42,11 +52,13 @@ public:
             s = static_cast<char *>(std::malloc(m * sizeof(char)));
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
+        default_allocate();
     }
 
     INLINE explicit KString(const char *str) {
         if(str == nullptr) {
             std::memset(this, 0, sizeof *this);
+            default_allocate();
         } else {
             m = l = std::strlen(str);
             roundup64(m);
@@ -64,9 +76,8 @@ public:
     INLINE const kstring_t *ks() const {return reinterpret_cast<const kstring_t *>(this);}
 #endif
     INLINE void free() {
-        l = m = 0;
         std::free(s);
-        s = nullptr;
+        std::memset(this, 0, sizeof(*this));
     }
 
     // Copy
