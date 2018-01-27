@@ -45,7 +45,7 @@ public:
         *s = 0;
     }
 
-    INLINE explicit KString(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
+    INLINE explicit string(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
 
