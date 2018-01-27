@@ -27,6 +27,12 @@
 #  endif
 #endif
 
+/*
+TODO: Add SSO to avoid allocating for small strings, which we currently do
+      defensively in order to avoid segfaults.
+
+*/
+
 namespace ks {
 
 using std::size_t;
