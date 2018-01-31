@@ -19,19 +19,34 @@
 #define roundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
 #endif
 
-#ifndef INLINE
-#  if __GNUC__ || __clang__
-#  define INLINE __attribute__((always_inline)) inline
-#  else
-#  define INLINE inline
+#ifdef __GNUC__
+#  ifndef likely
+#    define likely(x) __builtin_expect((x),1)
+#  endif
+#  ifndef unlikely
+#    define unlikely(x) __builtin_expect((x),0)
+#  endif
+#  ifndef UNUSED
+#    define UNUSED(x) __attribute__((unused)) x
+#  endif
+#  ifndef INLINE
+#    define INLINE __attribute__((always_inline)) inline
+#  endif
+#else
+#  ifndef likely
+#    define likely(x) (x)
+#  endif
+#  ifndef unlikely
+#    define unlikely(x) (x)
+#  endif
+#  ifndef UNUSED
+#    define UNUSED(x) (x)
+#  endif
+#  ifndef INLINE
+#    define INLINE
 #  endif
 #endif
 
-/*
-TODO: Add SSO to avoid allocating for small strings, which we currently do
-      defensively in order to avoid segfaults.
-
-*/
 
 namespace ks {
 
@@ -44,8 +59,12 @@ class string {
     static const size_t DEFAULT_SIZE = 4;
 public:
 
+/*
+TODO: Add SSO to avoid allocating for small strings, which we currently do
+      defensively in order to avoid segfaults.
+*/
     void default_allocate() {
-        if(s) return;
+        if(likely(s != nullptr)) return;
         if((s = static_cast<char *>(std::malloc(DEFAULT_SIZE))) == nullptr) throw std::bad_alloc();
         m = DEFAULT_SIZE;
         *s = 0;
@@ -55,12 +74,10 @@ public:
         default_allocate();
     }
 
-    INLINE explicit string(size_t used, size_t max, char *str, bool assume_ownership=false):
+    INLINE explicit string(size_t used, size_t max, char *str):
         l(used), m(max), s(str) {
-        if(assume_ownership == false) {
-            s = static_cast<char *>(std::malloc(m * sizeof(char)));
-            std::memcpy(s, str, (l + 1) * sizeof(char));
-        }
+        s = static_cast<char *>(std::malloc(m * sizeof(char)));
+        std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
 
@@ -70,9 +87,7 @@ public:
             default_allocate();
         } else {
             l = std::strlen(str);
-            m = l + 1;
-            roundup64(m);
-            s = static_cast<char *>(std::malloc(m * sizeof(char)));
+            resize(l + 1);
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
     }
@@ -117,7 +132,7 @@ public:
     }
 
     // Comparison functions
-    INLINE int cmp(const char *str)      const {return std::strcmp(s, str);}
+    INLINE int cmp(const char *str)     const {return std::strcmp(s, str);}
     INLINE int cmp(const string &other) const {return cmp(other.s);}
 
     INLINE bool operator==(const string &other) const {
@@ -159,7 +174,7 @@ public:
 
     // Appending:
     INLINE int putc_(int c) {
-        if (l + 1 >= m) {
+        if (unlikely(l + 1 >= m)) {
             char *tmp;
             m = l + 2;
             roundup64(m);
@@ -178,7 +193,7 @@ public:
         if (c < 0) x = -x;
         do { buf[len++] = (char)(x%10 + '0'); x /= 10; } while (x > 0);
         if (c < 0) buf[len++] = '-';
-        if (len + l + 1 >= m) {
+        if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
             roundup64(m);
@@ -196,7 +211,7 @@ public:
         unsigned x;
         if (c == 0) return putc('0');
         for (len = 0, x = c; x > 0; x /= 10) buf[len++] = (char)(x%10 + '0');
-        if (len + l + 1 >= m) {
+        if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
             roundup64(m);
@@ -215,7 +230,7 @@ public:
         if (c < 0) x = -x;
         do { buf[len++] = (char)(x%10 + '0'); x /= 10; } while (x > 0);
         if (c < 0) buf[len++] = '-';
-        if (len + l + 1 >= m) {
+        if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
             roundup64(m);
@@ -228,7 +243,7 @@ public:
         return 0;
     }
     INLINE long putsn_(const char *str, long len) {
-        if (len + l + 1 >= m) {
+        if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
             roundup64(m);
@@ -269,10 +284,8 @@ public:
         va_copy(args, ap);
         int len(vsnprintf(s + l, m - l, fmt, args)); // This line does not work with glibc 2.0. See `man snprintf'.
         va_end(args);
-        if ((unsigned)len + 1 > m - l) {
-            m = l + len + 2;
-            roundup64(m);
-            s = (char*)realloc(s, m);
+        if (unlikely((unsigned)len + 1 > m - l)) {
+            resize(l + len + 2);
             va_copy(args, ap);
             len = vsnprintf(s + l, m - l, fmt, args);
             va_end(args);
