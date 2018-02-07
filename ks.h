@@ -63,9 +63,11 @@ using namespace std::literals;
 class string {
     size_t l, m;
     char     *s;
-    static const size_t DEFAULT_SIZE = 4;
 public:
 
+    static const size_t DEFAULT_SIZE = 4;
+    using value_type = char;
+    using size_type  = size_t;
 /*
 TODO: Add SSO to avoid allocating for small strings, which we currently do
       defensively in order to avoid segfaults.
@@ -77,7 +79,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         *s = 0;
     }
 
-    INLINE explicit string(size_t size): l(size), m(roundup64(size)), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
+    INLINE explicit string(size_t size): l(size), m(size), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
 
@@ -123,8 +125,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
 
     // Stealing ownership in a very mean way.
-    INLINE string(std::string &&str): l(str.size()), m(l), s(const_cast<char *>(str.data())) {
-        roundup64(m);
+    INLINE string(std::string &&str): l(str.size()), m(str.capacity()), s(str.data()) {
         std::memset(&str, 0, sizeof(str));
     }
 
