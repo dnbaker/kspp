@@ -1,5 +1,8 @@
 #ifndef _KS_WRAPPER_H__
 #define _KS_WRAPPER_H__
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <cstdint>
 #include <cassert>
 #include <cstdarg>
@@ -14,6 +17,7 @@
 #include <experimental/functional>
 // If this fails to be located and you have a new compiler, you may need to remove "experimental/" from this include.
 #include <algorithm>
+
 
 #ifndef roundup64
 #define roundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
@@ -125,7 +129,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
 
     // Stealing ownership in a very mean way.
-    INLINE string(std::string &&str): l(str.size()), m(str.capacity()), s(str.data()) {
+    INLINE string(std::string &&str): l(str.size()), m(str.capacity()), s(&str[0]) {
         std::memset(&str, 0, sizeof(str));
     }
 
@@ -365,7 +369,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE auto &operator+=(unsigned c)   {putuw(c); return *this;}
     INLINE auto &operator+=(long c)       {putl(c);  return *this;}
     char *locate(const char *str, size_t len) {
-        return std::strstr(s, str);
+        return (char *)memmem(s, l, str, len);
     }
     const char *locate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->locate(str, len));}
     const char *locate(const char *str) const {return locate(str, std::strlen(str));}
