@@ -87,12 +87,14 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         default_allocate();
     }
 
-    INLINE explicit string(size_t used, size_t max, char *str):
+    INLINE explicit string(size_t used, size_t max, const char *str):
         l(used), m(max), s(str) {
         s = static_cast<char *>(std::malloc(m * sizeof(char)));
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
+    INLINE explicit string(const char *str, size_t used):
+        string(used, used, str) {}
 
     INLINE explicit string(const char *str) {
         if(str == nullptr) {
