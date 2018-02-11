@@ -88,7 +88,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
 
     INLINE explicit string(size_t used, size_t max, const char *str):
-        l(used), m(max), s(str) {
+        l(used), m(max)  {
         s = static_cast<char *>(std::malloc(m * sizeof(char)));
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
@@ -379,7 +379,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 
     char *bmlocate(const char *str, size_t len) {
 #if __cpp_lib_boyer_moore_searcher
-        return std::search(s, s + l, std::boyer_moore_searcher(str, str + len));
+        std::boyer_moore_searcher searcher(str, str + len);
+        return std::search<const char *, decltype(searcher)>(s, s + l, searcher);
 #else
 #pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
         return locate(str, len);
@@ -387,7 +388,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
     char *bmhlocate(const char *str, size_t len) {
 #if __cpp_lib_boyer_moore_searcher
-        return std::search(s, s + l, std::boyer_moore_horspool_searcher(str, str + len));
+        std::boyer_moore_horspool_searcher searcher(str, str + len);
+        return std::search(s, s + l, searcher);
 #else
 #pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
         return locate(str, len);
