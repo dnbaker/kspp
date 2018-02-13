@@ -51,6 +51,10 @@
 #  endif
 #endif
 
+#ifndef ENABLE_BM_SEARCH
+#undef __cpp_lib_boyer_moore_searcher
+#endif
+
 
 namespace ks {
 
@@ -98,9 +102,11 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 
     INLINE explicit string(const char *str) {
         if(str == nullptr) {
-            std::memset(this, 0, sizeof *this);
+            m = l = 0;
+            s = nullptr;
             default_allocate();
         } else {
+            m = 0;
             l = std::strlen(str);
             resize(l + 1);
             std::memcpy(s, str, (l + 1) * sizeof(char));
@@ -433,7 +439,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return *this;
     }
     INLINE auto &operator+=(const string &other) {putsn(other.s, other.l); return *this;}
-    INLINE auto &operator+=(const char *s)        {puts(s); return *this;}
+    INLINE auto &operator+=(const char *s)       {puts(s); return *this;}
 
     // Access
     INLINE const char &operator[](size_t index) const {return s[index];}
