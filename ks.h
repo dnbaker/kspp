@@ -107,6 +107,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
             default_allocate();
         } else {
             m = 0;
+            s = nullptr;
             l = std::strlen(str);
             resize(l + 1);
             std::memcpy(s, str, (l + 1) * sizeof(char));
@@ -388,7 +389,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_searcher searcher(str, str + len);
         return std::search<const char *, decltype(searcher)>(s, s + l, searcher);
 #else
-#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+#  if !NDEBUG
+#    pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+#  endif
         return locate(str, len);
 #endif
     }
@@ -397,7 +400,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_horspool_searcher searcher(str, str + len);
         return std::search(s, s + l, searcher);
 #else
-#pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+#  if !NDEBUG
+#    pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+#  endif
         return locate(str, len);
 #endif
     }
