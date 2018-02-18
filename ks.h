@@ -65,17 +65,17 @@ namespace ks {
     } while(0)
 
 
-using std::size_t;
+using std::uint64_t;
 using namespace std::literals;
 
 class string {
-    size_t l, m;
+    uint64_t l, m;
     char     *s;
 public:
 
-    static const size_t DEFAULT_SIZE = 4;
+    static const uint64_t DEFAULT_SIZE = 4;
     using value_type = char;
-    using size_type  = size_t;
+    using size_type  = uint64_t;
 /*
 TODO: Add SSO to avoid allocating for small strings, which we currently do
       defensively in order to avoid segfaults.
@@ -87,17 +87,17 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         *s = 0;
     }
 
-    INLINE explicit string(size_t size): l(size), m(size), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
+    INLINE explicit string(uint64_t size): l(size), m(size), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
 
-    INLINE explicit string(size_t used, size_t max, const char *str):
+    INLINE explicit string(uint64_t used, uint64_t max, const char *str):
         l(used), m(max)  {
         s = static_cast<char *>(std::malloc(m * sizeof(char)));
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
-    INLINE explicit string(const char *str, size_t used):
+    INLINE explicit string(const char *str, uint64_t used):
         string(used, used, str) {}
 
     INLINE explicit string(const char *str) {
@@ -158,7 +158,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 
     INLINE bool operator==(const string &other) const {
         if(other.l != l) return 0;
-        if(l) for(size_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
+        if(l) for(uint64_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
         return 1;
     }
 
@@ -171,23 +171,23 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
 
     INLINE bool palindrome() const {
-        for(size_t i(0), e(l >> 1); i < e; ++i)
+        for(uint64_t i(0), e(l >> 1); i < e; ++i)
             if(s[i] != s[l - i - 1])
                 return 0;
         return 1;
     }
     INLINE void reverse() {
-        for(size_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
+        for(uint64_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
     }
     string reversed() const {
         string cpy(*this);
         cpy.reverse();
         return cpy;
     }
-    bool startswith(const char *str, size_t slen) const {return std::memcmp(s, str, slen) == 0;}
+    bool startswith(const char *str, uint64_t slen) const {return std::memcmp(s, str, slen) == 0;}
     bool startswith(const char *str) const {return startswith(str, std::strlen(str));}
     template<typename T> bool startswith(const T &str) const {return startswith(str.data(), str.size());}
-    bool endswith(const char *str, size_t slen) const {
+    bool endswith(const char *str, uint64_t slen) const {
         return std::memcmp(str, s + l - slen, slen) == 0;
     }
     bool endswith(const char *str) const {return endswith(str, std::strlen(str));}
@@ -327,14 +327,14 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     char  *release() {auto ret(s); l = m = 0; s = nullptr; return ret;}
 
     // STL imitation
-    INLINE size_t size()     const {return l;}
-    INLINE size_t capacity() const {return m;}
+    INLINE uint64_t size()     const {return l;}
+    INLINE uint64_t capacity() const {return m;}
     INLINE auto  begin()     const {return s;}
     INLINE auto    end()     const {return s + l;}
     INLINE auto cbegin()     const {return const_cast<const char *>(s);}
     INLINE auto   cend()     const {return const_cast<const char *>(s + l);}
     INLINE char pop() {const char ret(s[--l]); s[l] = 0; return ret;}
-    INLINE void pop(size_t n) {
+    INLINE void pop(uint64_t n) {
         l = l > n ? l - n: 0;
         s[l] = 0;
     }
@@ -355,7 +355,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         set(ret);
         return ret;
     }
-    INLINE int resize(size_t size) {
+    INLINE int resize(uint64_t size) {
         if (m < size) {
             char *tmp;
             m = size;
@@ -377,14 +377,14 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE auto &operator+=(int c)        {putw(c);  return *this;}
     INLINE auto &operator+=(unsigned c)   {putuw(c); return *this;}
     INLINE auto &operator+=(long c)       {putl(c);  return *this;}
-    char *locate(const char *str, size_t len) {
+    char *locate(const char *str, uint64_t len) {
         return (char *)memmem(s, l, str, len);
     }
-    const char *locate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->locate(str, len));}
+    const char *locate(const char *str, uint64_t len) const {return static_cast<const char *>(const_cast<string *>(this)->locate(str, len));}
     const char *locate(const char *str) const {return locate(str, std::strlen(str));}
     char *locate(const char *str) {return locate(str, std::strlen(str));}
 
-    char *bmlocate(const char *str, size_t len) {
+    char *bmlocate(const char *str, uint64_t len) {
 #if __cpp_lib_boyer_moore_searcher
         std::boyer_moore_searcher searcher(str, str + len);
         return std::search<const char *, decltype(searcher)>(s, s + l, searcher);
@@ -395,7 +395,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return locate(str, len);
 #endif
     }
-    char *bmhlocate(const char *str, size_t len) {
+    char *bmhlocate(const char *str, uint64_t len) {
 #if __cpp_lib_boyer_moore_searcher
         std::boyer_moore_horspool_searcher searcher(str, str + len);
         return std::search(s, s + l, searcher);
@@ -414,16 +414,16 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return std::boyer_moore_horspool_searcher(s, s + l);
     }
 #endif
-    const char *bmlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmlocate(str, len));}
+    const char *bmlocate(const char *str, uint64_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmlocate(str, len));}
     const char *bmlocate(const char *str) const {return bmlocate(str, std::strlen(str));}
     char *bmlocate(const char *str) {return bmlocate(str, std::strlen(str));}
-    const char *bmhlocate(const char *str, size_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmhlocate(str, len));}
+    const char *bmhlocate(const char *str, uint64_t len) const {return static_cast<const char *>(const_cast<string *>(this)->bmhlocate(str, len));}
     const char *bmhlocate(const char *str) const {return bmhlocate(str, std::strlen(str));}
     char *bmhlocate(const char *str) {return bmhlocate(str, std::strlen(str));}
-    bool contains(const char *str, size_t len) const {return locate(str, len) != nullptr;}
+    bool contains(const char *str, uint64_t len) const {return locate(str, len) != nullptr;}
     bool contains(const char *str) const {return contains(str, std::strlen(str));}
     template<typename T> bool contains(const T &str) const {return contains(str.data(), str.size());}
-    bool bmcontains(const char *str, size_t len) const {
+    bool bmcontains(const char *str, uint64_t len) const {
         return bmlocate(str, len) != end();
     }
     bool bmcontains(const char *str) const {return bmcontains(str, std::strlen(str));}
@@ -447,8 +447,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE auto &operator+=(const char *s)       {puts(s); return *this;}
 
     // Access
-    INLINE const char &operator[](size_t index) const {return s[index];}
-    INLINE char       &operator[](size_t index)       {return s[index];}
+    INLINE const char &operator[](uint64_t index) const {return s[index];}
+    INLINE char       &operator[](uint64_t index)       {return s[index];}
 
     INLINE size_t write(FILE *fp) const   {return std::fwrite(s, sizeof(char), l, fp);}
     INLINE auto write(const char *path) const {
@@ -462,8 +462,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-void split(char *s, int delimiter, size_t l, std::vector<T, Alloc> &offsets)
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+void split(char *s, int delimiter, uint64_t l, std::vector<T, Alloc> &offsets)
 {
     unsigned i, last_char, last_start;
     offsets.clear();
@@ -491,14 +491,14 @@ void split(char *s, int delimiter, size_t l, std::vector<T, Alloc> &offsets)
 
 }
 
-template<typename T=std::size_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 inline void split(char *s, int delimiter, std::vector<T> &offsets) {
     split(s, delimiter, std::strlen(s), offsets);
 }
 
 
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-inline std::vector<T, Alloc> split(char *s, size_t l, int delimiter=0)
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+inline std::vector<T, Alloc> split(char *s, uint64_t l, int delimiter=0)
 {
     std::vector<T, Alloc> ret;
     ks::split(s, delimiter, l, ret);
@@ -514,8 +514,8 @@ inline string sprintf(const char *fmt, ...) {
     return ret;
 }
 
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
-inline std::vector<string> toksplit(char *s, size_t l, int delimiter=0) {
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+inline std::vector<string> toksplit(char *s, uint64_t l, int delimiter=0) {
     auto vec(split<T, Alloc>(s, l, delimiter));
     std::vector<string> ret;
     ret.reserve(vec.size());
@@ -523,11 +523,11 @@ inline std::vector<string> toksplit(char *s, size_t l, int delimiter=0) {
     return ret;
 }
 
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(string &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
-template<typename T=std::size_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
 std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
 
 using KString = ks::string;
