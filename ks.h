@@ -83,7 +83,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     void default_allocate() {
         if(likely(s != nullptr)) return;
         if((s = static_cast<char *>(std::malloc(DEFAULT_SIZE))) == nullptr) throw std::bad_alloc();
-        m = DEFAULT_SIZE;
+        l = m = DEFAULT_SIZE;
         *s = 0;
     }
 
@@ -114,7 +114,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         }
     }
 
-    INLINE string(): string(0ul) {}
+    INLINE string(): s{nullptr} {default_allocate();}
     INLINE ~string() {std::free(s);}
 
 #ifdef KSTRING_H
