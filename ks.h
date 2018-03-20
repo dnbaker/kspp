@@ -114,7 +114,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         }
     }
 
-    INLINE string(): s{nullptr} {default_allocate();}
+    INLINE string(): l{0}, m{0}, s{0} {
+        default_allocate();
+    }
     INLINE ~string() {std::free(s);}
 
 #ifdef KSTRING_H
