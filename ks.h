@@ -67,6 +67,71 @@ namespace ks {
 
 using std::uint64_t;
 using namespace std::literals;
+using ubyte_t = std::uint8_t;
+
+static std::vector<int> ksBM_prep(const ubyte_t *pat, int m)
+{
+    int i, *bmGs, *bmBc;
+    std::vector<int> prep(m + 256);
+    bmGs = prep.data(); bmBc = prep.data() + m;
+    { // preBmBc()
+        for (i = 0; i < 256; ++i) bmBc[i] = m;
+        for (i = 0; i < m - 1; ++i) bmBc[pat[i]] = m - i - 1;
+    }
+    std::vector<int> suff(m);
+    { // suffixes()
+        int f = 0, g;
+        suff[m - 1] = m;
+        g = m - 1;
+        for (i = m - 2; i >= 0; --i) {
+            if (i > g && suff[i + m - 1 - f] < i - g)
+                suff[i] = suff[i + m - 1 - f];
+            else {
+                if (i < g) g = i;
+                f = i;
+                while (g >= 0 && pat[g] == pat[g + m - 1 - f]) --g;
+                suff[i] = f - g;
+            }
+        }
+    }
+    { // preBmGs()
+        int j = 0;
+        for (i = 0; i < m; ++i) bmGs[i] = m;
+        for (i = m - 1; i >= 0; --i)
+            if (suff[i] == i + 1)
+                for (; j < m - 1 - i; ++j)
+                    if (bmGs[j] == m)
+                        bmGs[j] = m - 1 - i;
+        for (i = 0; i <= m - 2; ++i)
+            bmGs[m - 1 - suff[i]] = m - 1 - i;
+    }
+    return prep;
+}
+
+static auto ksBM_prep(const std::string &str) {
+    return ksBM_prep((const ubyte_t *)str.data(), str.size());
+}
+
+void *kmemmem(const void *_str, int n, const void *_pat, int m, const std::vector<int> &prep)
+{
+    int i, j;
+    const int *bmGs, *bmBc;
+    const ubyte_t *str, *pat;
+    str = (const ubyte_t*)_str; pat = (const ubyte_t*)_pat;
+    bmGs = prep.data(); bmBc = prep.data() + m;
+    j = 0;
+    while (j <= n - m) {
+        for (i = m - 1; i >= 0 && pat[i] == str[i+j]; --i);
+        if (i >= 0) {
+            int max = bmBc[str[i+j]] - m + 1 + i;
+            if (max < bmGs[i]) max = bmGs[i];
+            j += max;
+        } else return (void*)(str + j);
+    }
+    return 0;
+}
+
+
 
 class string {
     uint64_t l, m;
@@ -391,10 +456,11 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_searcher searcher(str, str + len);
         return std::search<const char *, decltype(searcher)>(s, s + l, searcher);
 #else
+        auto prep = ksBM_prep((const ubyte_t *)str, len);
+        return (char *)kmemmem((const ubyte_t *)s, l, (const ubyte_t *)str, len, prep);
 #  if !NDEBUG
 #    pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
 #  endif
-        return locate(str, len);
 #endif
     }
     char *bmhlocate(const char *str, uint64_t len) {
@@ -403,9 +469,10 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return std::search(s, s + l, searcher);
 #else
 #  if !NDEBUG
-#    pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
+#    pragma message("Boyer-Moore searcher unavailable. Defaulting to kmemmem.")
 #  endif
-        return locate(str, len);
+        auto prep = ksBM_prep((const ubyte_t *)str, len);
+        return (char *)kmemmem(s, l, str, len, prep);
 #endif
     }
 #if __cpp_lib_boyer_moore_searcher
