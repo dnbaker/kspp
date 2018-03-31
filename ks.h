@@ -112,7 +112,7 @@ static auto ksBM_prep(const std::string &str) {
     return ksBM_prep((const ubyte_t *)str.data(), str.size());
 }
 
-void *kmemmem(const void *_str, int n, const void *_pat, int m, const std::vector<int> &prep)
+static inline void *kmemmem(const void *_str, int n, const void *_pat, int m, const std::vector<int> &prep)
 {
     int i, j;
     const int *bmGs, *bmBc;
