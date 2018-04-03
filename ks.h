@@ -19,8 +19,8 @@
 #include <algorithm>
 
 
-#ifndef roundup64
-#define roundup64(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
+#ifndef roundup64__
+#define roundup64__(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, (x)|=(x)>>32, ++(x))
 #endif
 
 #ifdef __GNUC__
@@ -208,7 +208,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
 
     INLINE string(const std::string &str): l(str.size()), m(l), s(static_cast<char *>(std::malloc(m))) {
-        roundup64(m);
+        roundup64__(m);
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
@@ -273,7 +273,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (unlikely(l + 1 >= m)) {
             char *tmp;
             m = l + 2;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m * sizeof(char)))))
                 s = tmp;
             else
@@ -292,7 +292,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char*>(std::realloc(s, m * sizeof(char)))))
                 s = tmp;
             else
@@ -310,7 +310,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m * sizeof(char)))))
                 s = tmp;
             else
@@ -329,7 +329,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m * sizeof(char)))))
                 s = tmp;
             else
@@ -342,7 +342,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (unlikely(len + l + 1 >= m)) {
             char *tmp;
             m = len + l + 2;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char *>(std::realloc(s, m * sizeof(char)))))
                 s = tmp;
             else
@@ -434,7 +434,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if (m < size) {
             char *tmp;
             m = size;
-            roundup64(m);
+            roundup64__(m);
             if ((tmp = static_cast<char*>(std::realloc(s, m * sizeof(char)))) == nullptr) {
                 std::cerr << ("Could not allocate sufficient memory for "s + std::to_string(m) + " bytes.\n");
                 throw std::bad_alloc();
@@ -613,6 +613,6 @@ using KString = ks::string;
 
 using ks::KString;
 
-#undef roundup64
+#undef roundup64__
 
 #endif // #ifndef _KS_WRAPPER_H__
