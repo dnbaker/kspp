@@ -160,19 +160,19 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         default_allocate();
     }
 
-    INLINE explicit string(uint64_t used, uint64_t max, const char *str):
+    inline explicit string(uint64_t used, uint64_t max, const char *str):
         l(used), m(max)  {
         s = static_cast<char *>(std::malloc(m * sizeof(char)));
+        if(s == nullptr) throw std::bad_alloc();
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
-    INLINE explicit string(const char *str, uint64_t used):
-        string(used, used, str)
-    {
+    inline explicit string(char *str, size_t len): l(len), m(len), s(str) { // Stealing the other thing.
 #if !NDEBUG
-        std::fprintf(stderr, "[%s:%s:%d] Ownership of string at %p with len %" PRIu64 " has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), used);
+        std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %" PRIu64 " has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
 #endif
     }
+    inline explicit string(const char *str, uint64_t used): string(used, used, str) {}
 
     INLINE explicit string(const char *str) {
         if(str == nullptr) {
@@ -184,6 +184,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
             s = nullptr;
             l = std::strlen(str);
             resize(l + 1);
+            assert(s);
             std::memcpy(s, str, (l + 1) * sizeof(char));
         }
     }
@@ -218,7 +219,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::memset(&str, 0, sizeof(str));
     }
 
-    INLINE string operator=(const string &other)   {return string(other);}
+    INLINE string operator=(const string &other)    {return string(other);}
     INLINE string operator=(const char *str)        {return string(str);}
     INLINE string operator=(const std::string &str) {return string(str);}
 
@@ -434,7 +435,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE int resize(uint64_t size) {
         if (m < size) {
             char *tmp;
-            m = size;
+            m = std::max(size, UINT64_C(4));
             roundup64__(m);
             if ((tmp = static_cast<char*>(std::realloc(s, m * sizeof(char)))) == nullptr) {
                 std::cerr << ("Could not allocate sufficient memory for "s + std::to_string(m) + " bytes.\n");
@@ -467,9 +468,6 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 #else
         auto prep = ksBM_prep((const ubyte_t *)str, len);
         return (char *)kmemmem((const ubyte_t *)s, l, (const ubyte_t *)str, len, prep);
-#  if !NDEBUG
-#    pragma message("Boyer-Moore searcher unavailable. Defaulting to strstr. TODO: adapt this to use kmemmem.")
-#  endif
 #endif
     }
     char *bmhlocate(const char *str, uint64_t len) {
