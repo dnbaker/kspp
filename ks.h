@@ -5,6 +5,7 @@
 #endif
 #include <cstdint>
 #include <cassert>
+#include <cinttypes>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -169,7 +170,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         string(used, used, str)
     {
 #if !NDEBUG
-        std::fprintf(stderr, "[%s:%s:%d] Ownership of string at %p with len %" PRIu64 " has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<void *>(str), used);
+        std::fprintf(stderr, "[%s:%s:%d] Ownership of string at %p with len %" PRIu64 " has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), used);
 #endif
     }
 
