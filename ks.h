@@ -156,7 +156,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         }
     }
 
-    INLINE explicit string(uint64_t size): l(size), m(size), s(size ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
+    INLINE explicit string(uint64_t size): l(0), m(size), s(m ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
 
