@@ -475,9 +475,6 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_horspool_searcher searcher(str, str + len);
         return std::search(s, s + l, searcher);
 #else
-#  if !NDEBUG
-#    pragma message("Boyer-Moore searcher unavailable. Defaulting to kmemmem.")
-#  endif
         auto prep = ksBM_prep((const ubyte_t *)str, len);
         return (char *)kmemmem(s, l, str, len, prep);
 #endif
