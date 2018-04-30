@@ -169,7 +169,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
     inline explicit string(char *str, size_t len): l(len), m(len), s(str) { // Stealing the other thing.
 #if !NDEBUG
-        std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %" PRIu64 " has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
+        std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %zu has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
 #endif
     }
     inline explicit string(const char *str, uint64_t used): string(used, used, str) {}
