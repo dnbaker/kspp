@@ -1,8 +1,16 @@
 #ifndef _KS_WRAPPER_H__
 #define _KS_WRAPPER_H__
+
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+#  define _GNU_SOURCE
 #endif
+
+#if ZWRAP_USE_ZSTD
+#  include "zstd_zlibwrapper.h"
+#else
+#  include <zlib.h>
+#endif
+
 #include <cstdint>
 #include <cassert>
 #include <cinttypes>
@@ -532,6 +540,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return ret;
     }
     INLINE ssize_t write(int fd) const {return    ::write(fd, s, l * sizeof(char));}
+    INLINE auto write(gzFile fp) const {return    gzwrite(fp, s, l * sizeof(char));}
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
