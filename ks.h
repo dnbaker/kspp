@@ -362,6 +362,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         l += len;
         return len;
     }
+    std::string to_std_string() const {
+        return std::string(s, s + l);
+    }
     INLINE char       &back()       {return s[l - 1];}
     INLINE const char &back() const {return s[l - 1];}
 
