@@ -222,11 +222,6 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
-    // Stealing ownership in a very mean way.
-    INLINE string(std::string &&str): l(str.size()), m(str.capacity()), s(&str[0]) {
-        std::memset(&str, 0, sizeof(str));
-    }
-
     INLINE string operator=(const string &other)    {return string(other);}
     INLINE string operator=(const char *str)        {return string(str);}
     INLINE string operator=(const std::string &str) {return string(str);}
@@ -234,7 +229,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     // Move
     INLINE string(string &&other) {
         std::memcpy(this, &other, sizeof(other));
-        std::memset(&other, 0, sizeof(other));
+        other.zero();
     }
 
     // Comparison functions
@@ -245,6 +240,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if(other.l != l) return 0;
         if(l) for(uint64_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
         return 1;
+    }
+    void zero() {
+        std::memset(this, 0, sizeof(*this));
     }
 
     INLINE bool operator==(const char *str) const {
