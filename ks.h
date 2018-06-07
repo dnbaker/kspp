@@ -542,6 +542,11 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     }
     INLINE ssize_t write(int fd) const {return    ::write(fd, s, l * sizeof(char));}
     INLINE auto write(gzFile fp) const {return    gzwrite(fp, s, l * sizeof(char));}
+    template<typename T> auto flush(T target) {
+        auto ret = this->write(target);
+        this->clear();
+        return ret;
+    }
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
