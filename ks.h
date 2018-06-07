@@ -222,9 +222,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
-    INLINE string &operator=(const string &other)    {return string(other);}
-    INLINE string &operator=(const char *str)        {return string(str);}
-    INLINE string &operator=(const std::string &str) {return string(str);}
+    INLINE string &operator=(const string &other)    {return *this = string(other);}
+    INLINE string &operator=(const char *str)        {return *this = string(str);}
+    INLINE string &operator=(const std::string &str) {return *this = string(str);}
     INLINE string &operator=(string &&other)    {
         this->free();
         std::memcpy(this, &other, sizeof(*this));
