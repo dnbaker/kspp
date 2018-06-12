@@ -228,7 +228,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE string &operator=(string &&other)    {
         this->free();
         std::memcpy(this, &other, sizeof(*this));
-        std::memset(&other, 0, sizeof(other));
+        other.zero();
         return *this;
     }
 
