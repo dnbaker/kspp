@@ -170,8 +170,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 
     inline explicit string(uint64_t used, uint64_t max, const char *str):
         l(used), m(max)  {
-        s = static_cast<char *>(std::malloc(m * sizeof(char)));
-        if(s == nullptr) throw std::bad_alloc();
+        if((s = static_cast<char *>(std::malloc(m * sizeof(char)))) == nullptr) throw std::bad_alloc();
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
@@ -179,6 +178,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 #if !NDEBUG
         std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %zu has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
 #endif
+        terminate();
     }
     inline explicit string(const char *str, uint64_t used): string(used, used, str) {}
 
@@ -228,7 +228,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE string &operator=(string &&other)    {
         this->free();
         std::memcpy(this, &other, sizeof(*this));
-        std::memset(&other, 0, sizeof(other));
+        other.zero();
         return *this;
     }
 
@@ -446,6 +446,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::string ret;
         set(ret);
         return ret;
+    }
+    INLINE void set_size(uint64_t newlen) {
+        l = newlen;
     }
     INLINE int resize(uint64_t size) {
         if (m < size) {
