@@ -237,6 +237,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::memcpy(this, &other, sizeof(other));
         other.zero();
     }
+    INLINE auto       &len()       {return l;}
+    INLINE const auto &len() const {return l;}
 
     // Comparison functions
     INLINE int cmp(const char *str)     const {return std::strcmp(s, str);}
