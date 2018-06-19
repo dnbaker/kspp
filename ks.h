@@ -1,7 +1,7 @@
 #ifndef _KS_WRAPPER_H__
 #define _KS_WRAPPER_H__
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #endif
 #include <cstdint>
 #include <cassert>
