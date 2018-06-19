@@ -1,8 +1,16 @@
 #ifndef _KS_WRAPPER_H__
 #define _KS_WRAPPER_H__
+
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
+#  define _GNU_SOURCE 1
 #endif
+
+#if ZWRAP_USE_ZSTD
+#  include "zstd_zlibwrapper.h"
+#else
+#  include <zlib.h>
+#endif
+
 #include <cstdint>
 #include <cassert>
 #include <cinttypes>
@@ -162,8 +170,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 
     inline explicit string(uint64_t used, uint64_t max, const char *str):
         l(used), m(max)  {
-        s = static_cast<char *>(std::malloc(m * sizeof(char)));
-        if(s == nullptr) throw std::bad_alloc();
+        if((s = static_cast<char *>(std::malloc(m * sizeof(char)))) == nullptr) throw std::bad_alloc();
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
@@ -171,6 +178,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 #if !NDEBUG
         std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %zu has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
 #endif
+        terminate();
     }
     inline explicit string(const char *str, uint64_t used): string(used, used, str) {}
 
@@ -214,20 +222,23 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::memcpy(s, str.data(), (l + 1) * sizeof(char));
     }
 
-    // Stealing ownership in a very mean way.
-    INLINE string(std::string &&str): l(str.size()), m(str.capacity()), s(&str[0]) {
-        std::memset(&str, 0, sizeof(str));
+    INLINE string &operator=(const string &other)    {return *this = string(other);}
+    INLINE string &operator=(const char *str)        {return *this = string(str);}
+    INLINE string &operator=(const std::string &str) {return *this = string(str);}
+    INLINE string &operator=(string &&other)    {
+        this->free();
+        std::memcpy(this, &other, sizeof(*this));
+        other.zero();
+        return *this;
     }
-
-    INLINE string operator=(const string &other)    {return string(other);}
-    INLINE string operator=(const char *str)        {return string(str);}
-    INLINE string operator=(const std::string &str) {return string(str);}
 
     // Move
     INLINE string(string &&other) {
         std::memcpy(this, &other, sizeof(other));
-        std::memset(&other, 0, sizeof(other));
+        other.zero();
     }
+    INLINE auto       &len()       {return l;}
+    INLINE const auto &len() const {return l;}
 
     // Comparison functions
     INLINE int cmp(const char *str)     const {return std::strcmp(s, str);}
@@ -237,6 +248,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         if(other.l != l) return 0;
         if(l) for(uint64_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
         return 1;
+    }
+    void zero() {
+        std::memset(this, 0, sizeof(*this));
     }
 
     INLINE bool operator==(const char *str) const {
@@ -354,6 +368,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         l += len;
         return len;
     }
+    std::string to_std_string() const {
+        return std::string(s, s + l);
+    }
     INLINE char       &back()       {return s[l - 1];}
     INLINE const char &back() const {return s[l - 1];}
 
@@ -432,6 +449,9 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         set(ret);
         return ret;
     }
+    INLINE void set_size(uint64_t newlen) {
+        l = newlen;
+    }
     INLINE int resize(uint64_t size) {
         if (m < size) {
             char *tmp;
@@ -475,9 +495,6 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_horspool_searcher searcher(str, str + len);
         return std::search(s, s + l, searcher);
 #else
-#  if !NDEBUG
-#    pragma message("Boyer-Moore searcher unavailable. Defaulting to kmemmem.")
-#  endif
         auto prep = ksBM_prep((const ubyte_t *)str, len);
         return (char *)kmemmem(s, l, str, len, prep);
 #endif
@@ -535,6 +552,12 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return ret;
     }
     INLINE ssize_t write(int fd) const {return    ::write(fd, s, l * sizeof(char));}
+    INLINE auto write(gzFile fp) const {return    gzwrite(fp, s, l * sizeof(char));}
+    template<typename T> auto flush(T target) {
+        auto ret = this->write(target);
+        this->clear();
+        return ret;
+    }
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
