@@ -5,6 +5,14 @@
 #include <stdexcept>
 #include <string>
 
+#ifndef unlikely
+#define unlikely(x) __builtin_expect((x), 0)
+#endif
+#ifndef likely
+#define likely(x) __builtin_expect((x), 1)
+#endif
+
+
 namespace kb {
 
 struct DefaultCmp {
@@ -18,11 +26,36 @@ template<typename KeyType, typename Cmp=DefaultCmp, size_t MAX_DEPTH_PARAM=64>
 class KBTree {
 public:
     using key_t = KeyType;
+    using pointer = key_t *;
+    using const_pointer = const key_t *;
     static constexpr size_t MAX_DEPTH = MAX_DEPTH_PARAM;
 
     struct node_t {int32_t is_internal:1, n:31;};
     struct pos_t  {node_t *x; int i;};
-    struct iter_t {pos_t stack[MAX_DEPTH], *p;};
+    struct iter_t {
+        pos_t stack[MAX_DEPTH], *p;
+
+        iter_t(KBTree &ref): p(nullptr) {
+            if(unlikely(ref.n_keys == 0)) throw std::runtime_error("Could not initialize iterator over empty sequence.");
+            p = stack;
+            p->x = ref.root; p->i = 0;
+            while(p->x->is_internal && ref.ptr(p->x)[0] != 0) {
+                node_t *x = p->x;
+                (++p)->x = ref.ptr(x)[0];
+                p->i = 0;
+            }
+        }
+        key_t &key() {
+            return reinterpret_cast<key_t *>(reinterpret_cast<char *>(p->x) + 4)[p->i];
+        }
+        const key_t &key() const {
+            return reinterpret_cast<key_t *>(reinterpret_cast<char *>(p->x) + 4)[p->i];
+        }
+        const key_t &const_key() const {
+            return reinterpret_cast<key_t *>(reinterpret_cast<char *>(p->x) + 4)[p->i];
+        }
+        bool valid() const {return p >= stack;}
+    };
 
     int t, n;
     int off_key, off_ptr, ilen, elen;
@@ -178,9 +211,42 @@ public:
 		}
 		return put_aux(r, k);
     }
-    // TODO: Delete, Iterator interface
-#if 0
-#endif
+    int itr_get(const key_t * __restrict k, iter_t &itr) {
+        int i, r = 0;
+        itr.p = itr.stack;
+        itr.p->x = root; itr.p->i = 0;
+        while(itr.p->x) {
+			i = get_aux(itr.p->x, k, &r);
+			if (i >= 0 && r == 0) return 0;
+			if (itr.p->x->is_internal == 0) return -1;
+			itr.p[1].x = ptr(itr.p->x)[i + 1];
+			itr.p[1].i = i;
+			++itr.p;
+		}
+    }
+    int itr_next(iter_t &itr) {
+        if(itr.p < itr.stack) return 0;
+        for(;;) {
+			++itr.p->i;
+			while (itr.p->x && itr.p->i <= itr.p->x->n) {
+				itr.p[1].i = 0;
+				itr.p[1].x = itr.p->x->is_internal? ptr(itr.p->x)[itr.p->i] : 0;
+				++itr.p;
+			}
+			--itr.p;
+			if (itr.p < itr.stack) return 0;
+			if (itr.p->x && itr.p->i < itr.p->x->n) return 1;
+        }
+    }
+    template<typename Func>
+    void for_each(const Func &func) {
+        for(iter_t it(*this); it.valid(); func(it.key()), itr_next(it));
+    }
+    template<typename Func>
+    void for_each(const Func &func) const {
+        for(iter_t it(*this); it.valid(); func(it.const_key()), itr_next(it));
+    }
+    // TODO: Delete
 };
 
 
