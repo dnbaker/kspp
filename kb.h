@@ -1,31 +1,9 @@
 #ifndef KBTREE_WRAPPER_H__
 #define KBTREE_WRAPPER_H__
 #include "klib/kbtree.h"
+#include <cstring>
 #include <stdexcept>
 #include <string>
-
-#if 0
-	typedef struct {							\
-		kbnode_t *root;							\
-		int	off_key, off_ptr, ilen, elen;		\
-		int	n, t;								\
-		int	n_keys, n_nodes;					\
-	} kbtree_##name##_t;
-#define MAX_DEPTH 64
-
-typedef struct {
-	int32_t is_internal:1, n:31;
-} kbnode_t;
-
-typedef struct {
-	kbnode_t *x;
-	int i;
-} kbpos_t;
-
-typedef struct {
-	kbpos_t stack[MAX_DEPTH], *p;
-} kbitr_t;
-#endif
 
 namespace kb {
 
@@ -93,7 +71,7 @@ public:
     static const key_t *key(const node_t *node) {
         return reinterpret_cast<const key_t *>(reinterpret_cast<const char *>(node) + 4);
     }
-    static int get_aux1(const node_t * __restrict x, const key_t * __restrict k, int *r) {
+    static int get_aux(const node_t * __restrict x, const key_t * __restrict k, int *r) {
 		int tr, *rr, begin = 0, end = x->n;
 		if (x->n == 0) return -1;
         rr = r ? r: &tr;
@@ -110,7 +88,7 @@ public:
 		int i, r = 0;
 		node_t *x = root;
 		while (x) {
-			i = get_aux1(x, k, &r);
+			i = get_aux(x, k, &r);
             if(i >= 0 && r == 0) return &key(x)[i];
 			if (x->is_internal == 0) return nullptr;
 			x = ptr(x)[i + 1];
@@ -121,7 +99,7 @@ public:
 		int i, r = 0;
 		node_t *x = root;
 		while (x) {
-			i = get_aux1(x, k, &r);
+			i = get_aux(x, k, &r);
             if(i >= 0 && r == 0) return &key(x)[i];
 			if (x->is_internal == 0) return nullptr;
 			x = ptr(x)[i + 1];
@@ -131,7 +109,76 @@ public:
     key_t *get(key_t k) {return get(&k);}
     const key_t *get(key_t k) const {return get(&k);}
     auto size() const {return n_keys;}
-    // TODO: Interval, Split, Put, Iterator interface
+    void interval(const key_t * __restrict k, key_t **lower, key_t **upper) {
+		int i, r = 0;
+		node_t *x = root;
+		*lower = *upper = 0;
+		while (x) {
+			i = get_aux(x, k, &r);
+			if (i >= 0 && r == 0) {
+				*lower = *upper = &key(x)[i];
+				return;
+			}
+			if (i >= 0) *lower = &__KB_KEY(key_t, x)[i];
+			if (i < x->n - 1) *upper = &key(x)[i + 1];
+			if (x->is_internal == 0) return;
+			x = ptr(x)[i + 1];
+		}
+	}
+    void interval(const key_t k, key_t **lower, key_t **upper) {
+        interval(&k, lower, upper);
+    }
+    void split(node_t *x, int i, node_t *y) {
+        node_t *z = static_cast<node_t *>(std::calloc(1, y->is_internal ? ilen: elen));
+        ++n_nodes;
+        z->is_internal = y->is_internal;
+        z->n = this->t - 1;
+		std::memcpy(key(z), key(y) + this->t, sizeof(key_t) * (this->t - 1));
+        if(y->is_internal) std::memcpy(ptr(z), ptr(y) + this->t, sizeof(void *) * this->t);
+        y->n = this->t - 1;
+        std::memmove(ptr(x) + i + 2, ptr(x) + i + 1, sizeof(void *) * (x->n - i));
+        ptr(x)[i + 1] = z;
+        std::memmove(key(x) + i + 1, key(x) + i, sizeof(key_t) * (x->n - i));
+        key(x)[i] = key(y)[this->t - 1];
+        ++x->n;
+    }
+    key_t *put_aux(node_t *x, const key_t * __restrict k) {
+		int i = x->n - 1;
+		key_t *ret;
+		if (x->is_internal == 0) {
+			if((i = get_aux(x, k, 0)) != x->n - 1)
+				std::memmove(key(x) + i + 2, key(x) + i + 1, (x->n - i - 1) * sizeof(key_t));
+			ret = &key(x)[i + 1];
+			*ret = *k;
+			++x->n;
+		} else {
+			i = get_aux(x, k, 0) + 1;
+			if (ptr(x)[i]->n == 2 * this->t - 1) {
+				split(x, i, ptr(x)[i]);
+				i += (Cmp()(*k, key(x)[i]) > 0);
+			}
+			ret = put_aux(ptr(x)[i], k);
+		}
+		return ret;
+    }
+    key_t *put(node_t *x, const key_t k) {
+        return put(x, *k);
+    }
+	key_t *put(const key_t * __restrict k) {
+		node_t *r, *s;
+		++this->n_keys;
+		r = this->root;
+		if (r->n == 2 * this->t - 1) {
+			++this->n_nodes;
+			this->root = s = static_cast<node_t*>(calloc(1, this->ilen));
+		    s->is_internal = 1; s->n = 0;
+			ptr(s)[0] = r;
+			split(s, 0, r);
+			r = s;
+		}
+		return put_aux(r, k);
+    }
+    // TODO: Delete, Iterator interface
 #if 0
 #endif
 };
