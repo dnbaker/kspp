@@ -167,20 +167,21 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE explicit string(uint64_t size): l(0), m(size), s(m ? static_cast<char *>(std::malloc(m * sizeof(char))): nullptr) {
         default_allocate();
     }
+    operator const char *() const {return s;}
 
-    inline explicit string(uint64_t used, uint64_t max, const char *str):
+    inline string(uint64_t used, uint64_t max, const char *str):
         l(used), m(max)  {
         if((s = static_cast<char *>(std::malloc(m * sizeof(char)))) == nullptr) throw std::bad_alloc();
         std::memcpy(s, str, (l + 1) * sizeof(char));
         default_allocate();
     }
-    inline explicit string(char *str, size_t len): l(len), m(len), s(str) { // Stealing the other thing.
+    inline string(char *str, size_t len): l(len), m(len), s(str) { // Stealing the other thing.
 #if !NDEBUG
         std::fprintf(stderr, "[%s:%s:%d] Acquired ownership of string at %p with len %zu has been taken.", __PRETTY_FUNCTION__, __FILE__, __LINE__, static_cast<const void *>(str), len);
 #endif
         terminate();
     }
-    inline explicit string(const char *str, uint64_t used): string(used, used, str) {}
+    inline string(const char *str, uint64_t used): string(used, used, str) {}
 
     INLINE explicit string(const char *str) {
         if(str == nullptr) {
@@ -561,7 +562,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
 };
 
 // s MUST BE a null terminated string; [l = strlen(s)]
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 void split(char *s, int delimiter, uint64_t l, std::vector<T, Alloc> &offsets)
 {
     unsigned i, last_char, last_start;
@@ -590,13 +591,13 @@ void split(char *s, int delimiter, uint64_t l, std::vector<T, Alloc> &offsets)
 
 }
 
-template<typename T=std::uint64_t, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 inline void split(char *s, int delimiter, std::vector<T> &offsets) {
     split(s, delimiter, std::strlen(s), offsets);
 }
 
 
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 inline std::vector<T, Alloc> split(char *s, uint64_t l, int delimiter=0)
 {
     std::vector<T, Alloc> ret;
@@ -613,7 +614,7 @@ inline string sprintf(const char *fmt, ...) {
     return ret;
 }
 
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 inline std::vector<string> toksplit(char *s, uint64_t l, int delimiter=0) {
     auto vec(split<T, Alloc>(s, l, delimiter));
     std::vector<string> ret;
@@ -622,11 +623,11 @@ inline std::vector<string> toksplit(char *s, uint64_t l, int delimiter=0) {
     return ret;
 }
 
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 std::vector<T, Alloc> split(string &s, int delimiter=0) {return split<T, Alloc>(s.data(), s.size(), delimiter);}
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 std::vector<T, Alloc> split(std::string &s, int delimiter=0) {return split<T, Alloc>(&s[0], s.size(), delimiter);}
-template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=std::enable_if_t<std::is_arithmetic<T>::value>>
+template<typename T=std::uint64_t, typename Alloc=std::allocator<T>, typename=typename std::enable_if<std::is_arithmetic<T>::value>::type>
 std::vector<T, Alloc> split(char *s, int delimiter=0) {return split<T, Alloc>(s, std::strlen(s), delimiter);}
 
 using KString = ks::string;
