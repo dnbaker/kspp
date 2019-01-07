@@ -8,10 +8,7 @@ using std::size_t;
 
 template<typename T>
 struct DestructIf {
-    void operator()(const T *v) const {
-        if constexpr(!std::is_trivially_destructible<T>::value)
-            v->~T();
-    }
+    void operator()(const T *v) const {const_cast<T *>(v)->~T();}
 };
 
 template<typename T, typename FreeFunc=DestructIf<T>>
@@ -31,7 +28,7 @@ public:
         ++cnt_;
         if(n_ == 0) return static_cast<T *>(std::calloc(1, sizeof(T)));
         auto ret = buf_[--n_];
-        ret = nullptr;
+        std::memset(ret, 0, sizeof(T)); // Zero memory pointed to.
         return ret;
     }
     template<typename... Args>
