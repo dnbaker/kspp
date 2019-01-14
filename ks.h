@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-#include <experimental/functional>
+//#include <experimental/functional>
 // If this fails to be located and you have a new compiler, you may need to remove "experimental/" from this include.
 #include <algorithm>
 
@@ -211,6 +211,23 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE void free() {
         std::free(s);
         std::memset(this, 0, sizeof(*this));
+    }
+    template<typename T>
+    string &append(const T &to_append) {
+        *this += to_append;
+        return *this;
+    }
+    string &append(const char *str, size_t len) {
+        this->resize(this->l + len);
+        std::memcpy(this->s + this->l, str, len);
+        this->l += len;
+        terminate();
+        return *this;
+    }
+    string &append(size_t n, char c) {
+        for(size_t final_len = this->l + n; this->l != final_len; this->s[this->l++] = c);
+        terminate();
+        return *this;
     }
 
     // Copy
