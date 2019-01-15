@@ -225,6 +225,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return *this;
     }
     string &append(size_t n, char c) {
+        this->resize(this->l + n);
         for(size_t final_len = this->l + n; this->l != final_len; this->s[this->l++] = c);
         terminate();
         return *this;
