@@ -605,7 +605,7 @@ inline std::vector<T, Alloc> split(char *s, uint64_t l, int delimiter=0)
     return ret;
 }
 
-inline string sprintf(const char *fmt, ...) {
+static string sprintf(const char *fmt, ...) {
     string ret;
     va_list ap;
     va_start(ap, fmt);
