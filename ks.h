@@ -117,7 +117,7 @@ static std::vector<int> ksBM_prep(const ubyte_t *pat, int m)
     return prep;
 }
 
-static auto ksBM_prep(const std::string &str) {
+static inline auto ksBM_prep(const std::string &str) {
     return ksBM_prep((const ubyte_t *)str.data(), str.size());
 }
 
