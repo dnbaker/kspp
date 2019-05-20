@@ -76,9 +76,8 @@ namespace ks {
 
 using std::uint64_t;
 using namespace std::literals;
-using ubyte_t = std::uint8_t;
 
-static std::vector<int> ksBM_prep(const ubyte_t *pat, int m)
+static std::vector<int> ksBM_prep(const ::std::uint8_t *pat, int m)
 {
     int i, *bmGs, *bmBc;
     std::vector<int> prep(m + 256);
@@ -118,15 +117,15 @@ static std::vector<int> ksBM_prep(const ubyte_t *pat, int m)
 }
 
 static inline auto ksBM_prep(const std::string &str) {
-    return ksBM_prep((const ubyte_t *)str.data(), str.size());
+    return ksBM_prep((const ::std::uint8_t *)str.data(), str.size());
 }
 
 static inline void *kmemmem(const void *_str, int n, const void *_pat, int m, const std::vector<int> &prep)
 {
     int i, j;
     const int *bmGs, *bmBc;
-    const ubyte_t *str, *pat;
-    str = (const ubyte_t*)_str; pat = (const ubyte_t*)_pat;
+    const ::std::uint8_t *str, *pat;
+    str = (const ::std::uint8_t*)_str; pat = (const ::std::uint8_t*)_pat;
     bmGs = prep.data(); bmBc = prep.data() + m;
     j = 0;
     while (j <= n - m) {
@@ -505,8 +504,8 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_searcher searcher(str, str + len);
         return std::search<const char *, decltype(searcher)>(s, s + l, searcher);
 #else
-        auto prep = ksBM_prep((const ubyte_t *)str, len);
-        return (char *)kmemmem((const ubyte_t *)s, l, (const ubyte_t *)str, len, prep);
+        auto prep = ksBM_prep((const ::std::uint8_t *)str, len);
+        return (char *)kmemmem((const ::std::uint8_t *)s, l, (const ::std::uint8_t *)str, len, prep);
 #endif
     }
     char *bmhlocate(const char *str, uint64_t len) {
@@ -514,7 +513,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         std::boyer_moore_horspool_searcher searcher(str, str + len);
         return std::search(s, s + l, searcher);
 #else
-        auto prep = ksBM_prep((const ubyte_t *)str, len);
+        auto prep = ksBM_prep((const ::std::uint8_t *)str, len);
         return (char *)kmemmem(s, l, str, len, prep);
 #endif
     }
