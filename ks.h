@@ -263,10 +263,12 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     INLINE int cmp(const string &other) const {return cmp(other.s);}
 
     INLINE bool operator==(const string &other) const {
-        if(other.l != l) return 0;
-        if(l) for(uint64_t i(0); i < l; ++i) if(s[i] != other.s[i]) return 0;
-        return 1;
+        return l == other.l && std::memcmp(this->s, other.s, l) == 0;
     }
+    INLINE bool operator==(const ::std::string &other) const {
+        return l == other.size() && std::memcmp(this->s, other.data(), l) == 0;
+    }
+
     void zero() {
         std::memset(this, 0, sizeof(*this));
     }
@@ -275,9 +277,7 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return s ? str ? std::strcmp(str, s) == 0: 0: 1;
     }
 
-    INLINE bool operator==(const std::string &str) const {
-        return str.size() == l ? l ? std::strcmp(str.data(), s) == 0: 1: 0;
-    }
+    template<typename T> INLINE bool operator!=(const T &o) {return !(this->operator==(o));}
 
     INLINE bool palindrome() const {
         for(uint64_t i(0), e(l >> 1); i < e; ++i)
@@ -286,7 +286,13 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
         return 1;
     }
     INLINE void reverse() {
-        for(uint64_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
+        auto rit = s + l, fit = s, fie = s + (l / 2);
+        while(fit != fie) {
+            --rit;
+            std::swap(*rit, *fit);
+            ++fit;
+        }
+        //for(uint64_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
     }
     string reversed() const {
         string cpy(*this);
