@@ -280,19 +280,11 @@ TODO: Add SSO to avoid allocating for small strings, which we currently do
     template<typename T> INLINE bool operator!=(const T &o) {return !(this->operator==(o));}
 
     INLINE bool palindrome() const {
-        for(uint64_t i(0), e(l >> 1); i < e; ++i)
-            if(s[i] != s[l - i - 1])
-                return 0;
-        return 1;
+        return std::equal(s, s + (l + 1) / 2, std::reverse_iterator<const char *>(s + l));
     }
     INLINE void reverse() {
-        auto rit = s + l, fit = s, fie = s + (l / 2);
-        while(fit != fie) {
-            --rit;
-            std::swap(*rit, *fit);
-            ++fit;
-        }
-        //for(uint64_t i(0), e(l >> 1); i < e; std::swap(s[i], s[l - i - 1]), ++i);
+        auto revit = std::reverse_iterator<char *>(s + l);
+        for(auto fit = s, efit = fit + (l + 1) / 2; fit < efit; std::swap(*fit++, *revit++));
     }
     string reversed() const {
         string cpy(*this);
